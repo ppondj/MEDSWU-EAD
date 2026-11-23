@@ -1,5 +1,5 @@
-/* MEDSWU-EAD offline cache — v3.28 (6748137ae9) */
-const CACHE = 'medswu-ead-3.28-6748137ae9';
+/* MEDSWU-EAD offline cache — v3.28 (a43fede9e8) */
+const CACHE = 'medswu-ead-3.28-a43fede9e8';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache:'reload' }))))); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('medswu-ead-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

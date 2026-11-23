@@ -550,7 +550,7 @@ input[type=color]{border:1px solid var(--line);border-radius:7px;padding:2px;wid
 .exp{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .exp .lbl{font-size:12.5px;color:var(--muted);margin-right:2px}
 .preview-wrap{padding:24px 24px 76px;overflow:auto}
-#preview{zoom:.8;margin:0 auto;width:max-content}
+#preview{margin:0;width:max-content;transform-origin:0 0}
 .modal-bg{position:fixed;inset:0;background:rgba(20,20,20,.35);display:none;align-items:flex-start;justify-content:center;z-index:50;overflow:auto;padding:40px 16px}
 .modal-bg.open{display:flex}
 .modal{background:#fff;border-radius:14px;width:min(720px,100%);padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
@@ -693,7 +693,7 @@ input::placeholder,textarea::placeholder{color:#aaa49b}
 .lbsec{border-color:var(--line2);border-radius:14px;box-shadow:var(--sh1)}
 .room{border-color:var(--line2);border-radius:12px}
 .notice,.okbox{border-radius:10px}
-.printbar{background:#fff;border-bottom-color:var(--line);box-shadow:0 10px 24px -18px rgba(30,22,18,.35)}
+.printbar{background:#fff;border-bottom-color:var(--line);box-shadow:none}
 .printbar .row.opts{background:#f8f7f4;border-color:var(--line2);border-radius:12px}
 .printbar .doctabs button{border-radius:8px}
 .preview-wrap{background-color:#efede9;background-image:radial-gradient(rgba(60,45,35,.10) 1px,transparent 1.2px);background-size:18px 18px}
@@ -770,6 +770,9 @@ label.f select,div.f > select{padding-top:0;padding-bottom:0}
 .snd-own .ic{width:14px;height:14px}
 .snd-def{display:inline-block;color:#6b5a2e;background:#fbf6e8;border:1px solid #efe2bd;border-radius:999px;padding:3px 11px}
 .snd-row{flex-wrap:wrap;align-items:center}
+/* tablets: the app itself never scrolls or bounces as a whole (only its panels do) — nothing for iPadOS to blur or stretch at the top edge */
+@media (min-width:701px){ html,body{overflow:hidden;overscroll-behavior:none} }
+.content,.exam-list,.preview-wrap,.nt-ed,.modal-bg{overscroll-behavior:contain}
 </style>
 <style id="lblCss">
 /* ---- labels (exact millimetres: no paper-size scaling) ---- */
@@ -5893,7 +5896,7 @@ function autoFit(root){
     u.style.removeProperty('font-size');
     const lh = () => parseFloat(getComputedStyle(u).lineHeight) || 20;
     let f = 1;
-    while(u.getBoundingClientRect().height > lh() * 2.4 && f > .7){ f = Math.round((f - .04) * 100) / 100; u.style.fontSize = f + 'em'; }
+    while(u.offsetHeight > lh() * 2.4 && f > .7){ f = Math.round((f - .04) * 100) / 100; u.style.fontSize = f + 'em'; }
   });
   root.querySelectorAll('.st-tbl .nmc').forEach(c => { if(c.scrollWidth > c.clientWidth + 1) fitWidthVar(c, '--cf', .55); });
   root.querySelectorAll('.ml-frame').forEach(f => { fitShrink(f, '.ml-rcv'); f.querySelectorAll('.ml-addr').forEach(a => { a.style.removeProperty('--hf'); let k = 1; while(a.scrollWidth > a.clientWidth + 1 && k > .55){ k = Math.round((k - .03) * 100) / 100; a.style.setProperty('--hf', k); } }); });
@@ -6344,20 +6347,41 @@ function layoutVars(){
   c.style.setProperty('--pvh', pvh + 'px');
   return pvh;
 }
+// Preview scale: a transform, not CSS zoom. Safari / iPad never lets zoomed text get smaller than about 9 px,
+// so with zoom a page shown at 35 % got letters far too big for the paper (lines wrapped differently from the real page).
+// A transform scales the finished page like a picture, so it looks the same at every size on every device.
+let pvRO = null;
+function pvFix(p = $('#preview')){
+  if(!p || !p.parentElement) return;
+  const z = +p.dataset.z || 1, W = p.offsetWidth, H = p.offsetHeight, wrap = p.parentElement, cs = getComputedStyle(wrap);
+  const aw = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  // the box takes exactly the scaled size in the layout (so scrolling ends at the last page), centred when it fits
+  p.style.marginLeft = Math.max(0, (aw - W * z) / 2).toFixed(1) + 'px';
+  p.style.marginRight = (-W * (1 - z)).toFixed(1) + 'px';
+  p.style.marginBottom = (-H * (1 - z)).toFixed(1) + 'px';
+}
+function setPvZoom(p, z){
+  if(!p) return;
+  p.dataset.z = z; p.style.zoom = '1';
+  p.style.transform = z === 1 ? '' : `scale(${z})`;
+  if(!pvRO && window.ResizeObserver) pvRO = new ResizeObserver(es => es.forEach(e => pvFix(e.target)));
+  if(pvRO && !p.__ro){ pvRO.observe(p); p.__ro = 1; }
+  pvFix(p);
+}
 function fitZoom(){
   const p = $('#preview'); if(!p) return;
   const pvh = layoutVars(); requestAnimationFrame(dockSync);
   const fm = pd('zoomFit'), fitOn = fm !== false, fitW = fm === 'width';
   document.querySelectorAll('[data-zoomfit]').forEach(b => b.classList.toggle('on', fitOn && (b.dataset.zoomfit === 'width') === fitW));
   const zv = $('#zoomVal');
-  if(!fitOn){ p.style.zoom = (+pd('zoom') || 80) / 100; if(zv) zv.textContent = Math.round(+pd('zoom') || 80) + '%'; return; }
+  if(!fitOn){ setPvZoom(p, (+pd('zoom') || 80) / 100); if(zv) zv.textContent = Math.round(+pd('zoom') || 80) + '%'; return; }
   const wrap = p.parentElement, cs = getComputedStyle(wrap);
   const availW = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 8;
   const availH = pvh - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 6;
   const [mw, mh] = paperMM(orientOf(state.view.doc) === 'lan'), pw = mw * 96 / 25.4, ph = mh * 96 / 25.4;
   if(!(availW > 50)) return;
   const z = Math.max(.2, Math.min(1.6, fitW ? availW / pw : Math.min(availW / pw, availH / ph)));
-  p.style.zoom = z;
+  setPvZoom(p, z);
   const rg = document.querySelector('[data-v="zoom"]'); if(rg) rg.value = Math.round(z * 100);
   if(zv) zv.textContent = Math.round(z * 100) + '%';
 }
@@ -6376,7 +6400,7 @@ function zoomTo(z, commit){
   setPd('zoom', z); setPd('zoomFit', false); fitZoom();
   clearTimeout(pinchSave); pinchSave = setTimeout(save, commit ? 0 : 400);
 }
-const curZoom = () => { const p = $('#preview'); return p && parseFloat(p.style.zoom) ? parseFloat(p.style.zoom) * 100 : (+pd('zoom') || 80); };
+const curZoom = () => { const p = $('#preview'); return p && +p.dataset.z ? +p.dataset.z * 100 : (+pd('zoom') || 80); };
 document.addEventListener('wheel', e => {
   if(!e.ctrlKey) return;
   e.preventDefault();   // the screen itself never zooms (that is what bends layouts); only the preview does
@@ -6411,7 +6435,7 @@ async function refreshPreview(){
   fitZoom();
   const html = buildPages(ex, state.view.doc);
   p.innerHTML = html || `<div class="pv-empty">${state.view.doc === 'mail' ? 'ยังไม่มีซองสำหรับรายวิชานี้<br><span>กด “+ ซองใหม่” ทางด้านซ้ายเพื่อเริ่ม</span>' : state.view.doc === 'notice' ? 'ยังไม่มีประกาศสำหรับรายวิชานี้<br><span>กด “+ ประกาศใหม่” ทางด้านซ้ายแล้วเลือกแบบประกาศ</span>' : state.view.doc === 'memo' ? 'ยังไม่มีบันทึกข้อความสำหรับรายวิชานี้<br><span>กด “+ บันทึกใหม่” ทางด้านซ้ายแล้วเลือกแบบ</span>' : 'ไม่มีหน้าที่จะแสดง<br><span>เลือกเอกสารที่จะพิมพ์จากตัวเลือกด้านบน</span>'}</div>`;
-  if(!html) p.style.zoom = 1;
+  if(!html) setPvZoom(p, 1);
   { const c = document.querySelector('.printbar .snchip'); if(c){ const h = snChip(ex); if(c.outerHTML !== h) c.outerHTML = h; } }   // a new notice / memo / envelope gets its own number
   const check = () => {
     autoFit(p);
@@ -8234,7 +8258,7 @@ function renderSnFmt(ctl = $('#snFmtCtl'), pv = $('#snFmtPrev'), f = snFmt(null,
   pv.innerHTML = `<div class="snprev" style="--pk:1"><div class="snprev-pg" style="width:${pw}mm"><div class="snprev-lines"><i></i><i></i><i style="width:62%"></i></div>
     <div class="sysfoot has-sn${snStackCls(f)}" style="--sfx:9mm;bottom:4mm${b ? `;--sncw:${(b.w + .5).toFixed(1)}mm` : ''}"><div class="sf-t">${sample ? esc(sample.foot) : 'รายงานจากระบบจัดทำเอกสารการดำเนินการสอบ … (MEDSWU-EAD) | 23 พ.ย. 2569 15.30 น.'}</div>${b ? b.html : ''}</div></div></div>`;
   requestAnimationFrame(() => { const box = pv.querySelector('.snprev'), pg = pv.querySelector('.snprev-pg'); if(!box || !pg || !box.clientWidth) return;
-    const z = Math.min(1.6, (box.clientWidth - 22) / (pw * 96 / 25.4)); pg.style.zoom = z.toFixed(3);
+    const z = Math.min(1.6, (box.clientWidth - 22) / (pw * 96 / 25.4)); pg.style.transformOrigin = '0 0'; pg.style.transform = `scale(${z.toFixed(3)})`; pg.parentElement.style.height = (pg.offsetHeight * z + 20).toFixed(1) + 'px';
     const cap = pv.parentElement && pv.parentElement.querySelector('.snfmt-cap'); if(cap) cap.textContent = `ตัวอย่างมุมล่างของหน้ากว้าง ${pw} มม. (แสดงที่ ${Math.round(z * 100)}%)`; });
 }
 document.addEventListener('click', e => {
