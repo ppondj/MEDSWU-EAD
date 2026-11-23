@@ -2,11 +2,11 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script>if(/iP(ad|hone|od)/.test(navigator.platform)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1))document.querySelector('meta[name=viewport]').content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>if(/iP(ad|hone|od)/.test(navigator.platform)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1))document.querySelector('meta[name=viewport]').content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";</script>
 <title>MEDSWU-EAD</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#8a1c2b">
+<meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="MEDSWU-EAD">
@@ -773,6 +773,17 @@ label.f select,div.f > select{padding-top:0;padding-bottom:0}
 /* tablets: the app itself never scrolls or bounces as a whole (only its panels do) — nothing for iPadOS to blur or stretch at the top edge */
 @media (min-width:701px){ html,body{overflow:hidden;overscroll-behavior:none} }
 .content,.exam-list,.preview-wrap,.nt-ed,.modal-bg{overscroll-behavior:contain}
+/* iPad home-screen app: the strip under the status bar (clock / battery) and the home-indicator strip are our own solid white,
+   so iPadOS has nothing colourful to blur there */
+body::before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);background:#fff;z-index:2147483000;pointer-events:none}
+body{padding-top:env(safe-area-inset-top,0px);background:#fff}
+@media (min-width:701px){ .app{height:calc(100vh - env(safe-area-inset-top,0px));height:calc(100dvh - env(safe-area-inset-top,0px))} }
+.app{background:var(--bg)}
+.welcome{top:env(safe-area-inset-top,0px)}
+aside{padding-bottom:env(safe-area-inset-bottom,0px)}
+.zoomdock{bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+/* on screen the code is drawn smooth (true bar widths at any zoom); files and print keep razor-sharp bars */
+#preview .snb-code,.snprev .snb-code{shape-rendering:geometricPrecision}
 </style>
 <style id="lblCss">
 /* ---- labels (exact millimetres: no paper-size scaling) ---- */
