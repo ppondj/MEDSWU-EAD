@@ -1474,9 +1474,28 @@ kbd{display:inline-block;min-width:24px;text-align:center;font:600 12px/1 var(--
 .st > .sysfoot{--sfx:15mm;bottom:calc(4.6mm*var(--pk,1))}
 .an-in .sysfoot{--sfx:11mm}
 .page.mail .sysfoot{--sfx:23.5mm;bottom:calc(19.2mm*var(--pk,1))}
-.page.mail:has(.sysfoot:not(.has-sn)) .ml-frame{bottom:calc(24mm*var(--pk,1))}
 .page.mail.nocut .sysfoot{--sfx:12mm;bottom:calc(5mm*var(--pk,1))}
-.page.mail.nocut:has(.sysfoot:not(.has-sn)) .ml-frame{bottom:calc(12mm*var(--pk,1))}
+/* the system line wraps inside the page rather than running past its edge; with only the line, the content keeps room for it too */
+.page .sysfoot > .sf-t{white-space:normal;max-width:100%;min-width:0}
+.page .sysfoot > .snb{flex:none}
+.page .sysfoot.sf-ta-left > .sf-t{text-align:left}
+.page .sysfoot.sf-ta-center > .sf-t{text-align:center}
+.page .sysfoot.sf-ta-right > .sf-t{text-align:right}
+.page .sysfoot.has-sn.sf-o-inline:not(.sf-split) > .sf-t{flex:0 1 auto}
+.envp:has(> .sysfoot:not(.has-sn)){padding-bottom:calc(max(10mm, 5.6mm + var(--sfh,0mm))*var(--pk,1))}
+.an-in:has(.sysfoot:not(.has-sn)){padding-bottom:calc(max(9mm, 2.6mm + var(--sfh,0mm))*var(--pk,1))}
+.st:has(> .sysfoot:not(.has-sn)){padding-bottom:calc(max(12mm, 6.4mm + var(--sfh,0mm))*var(--pk,1))}
+.page.mail:has(.sysfoot:not(.has-sn)) .ml-frame{bottom:calc((20.8mm + var(--sfh,3.2mm))*var(--pk,1))}
+.page.mail.nocut:has(.sysfoot:not(.has-sn)) .ml-frame{bottom:calc(max(12mm, 6.4mm + var(--sfh,0mm))*var(--pk,1))}
+/* envelope: the stack's left edge on the frame's left edge too (the frame sits 2 mm further in on the left) */
+.page.mail .sysfoot{left:calc(25.5mm*var(--pk,1))}
+.page.mail.nocut .sysfoot{left:calc(12mm*var(--pk,1))}
+/* envelope, stack outside the cut line: on the strip below it, edges on the cut line's; the label moves up only if the stack needs more room */
+.page.mail.ft-out .sysfoot,.page.mail.ft-out .sysfoot.has-sn{left:calc(20mm*var(--pk,1));--sfx:18mm;bottom:calc(5mm*var(--pk,1))}
+.page.mail.ft-out:has(.has-sn) .ml-cut{bottom:calc(max(17mm, 6.6mm + var(--snh,9mm))*var(--pk,1))}
+.page.mail.ft-out:has(.has-sn) .ml-frame{bottom:calc(max(21.5mm, 11.1mm + var(--snh,9mm))*var(--pk,1))}
+.page.mail.ft-out:has(.sysfoot:not(.has-sn)) .ml-cut{bottom:calc(max(17mm, 6.6mm + var(--sfh,3mm))*var(--pk,1))}
+.page.mail.ft-out:has(.sysfoot:not(.has-sn)) .ml-frame{bottom:calc(max(21.5mm, 11.1mm + var(--sfh,3mm))*var(--pk,1))}
 </style>
 </head>
 <body>
@@ -2359,7 +2378,7 @@ function fontOptions(){
 }
 
 /* ================= per-document view settings ================= */
-const PD_KEYS = ['sn', 'foot', 'font', 'scale', 'zoom', 'zoomFit', 'mailCut', 'mailBw', 'mailBc', 'mailHs', 'mailNs', 'frame', 'frameColor', 'banner', 'boxColor', 'paper', 'ls', 'lh', 'autoSize'];
+const PD_KEYS = ['sn', 'foot', 'font', 'scale', 'zoom', 'zoomFit', 'mailCut', 'mailFoot', 'mailBw', 'mailBc', 'mailHs', 'mailNs', 'frame', 'frameColor', 'banner', 'boxColor', 'paper', 'ls', 'lh', 'autoSize'];
 const PAPERS = {
   A4:{ label:'A4 (210 × 297 มม.)', w:210, h:297 },
   A5:{ label:'A5 (148 × 210 มม.)', w:148, h:210 },
@@ -2887,7 +2906,7 @@ function seatPaging(ex){
   const m = measurer();
   const fits = (r, items, cols) => {
     m.innerHTML = seatPageHtml(ex, r, items, 0, 9, mode, cols);
-    const pg = m.firstElementChild;
+    const pg = m.firstElementChild; alignSysFoot(m); snRoom(m);
     return !overY(pg) && (mode !== 'ids' || ![...pg.querySelectorAll('.st-cell')].some(c => c.scrollWidth > c.clientWidth + 1));
   };
   st.rooms.forEach(r => {
@@ -3081,7 +3100,7 @@ function mailPage(ex, m){
   const cut = pd('mailCut') !== false;
   const contact = `<div class="v"><div class="${sTel ? '' : 'phrow'}">${L2.tel} <b>${val(m.sTel, L2.ph.sTel)}</b></div><div class="${sMail ? '' : 'phrow'}">${L2.mail} <b>${val(m.sEmail, L2.ph.sEmail)}</b></div></div>`;
   const lg = mailLogoGeo(), rl = mailRule();
-  return `<div class="page lan mail ${cut ? '' : 'nocut'}" style="--lcol:${lg.col.toFixed(2)}mm;--lgap:${lg.gap.toFixed(2)}mm;--lgh:${lg.h.toFixed(2)}mm">
+  return `<div class="page lan mail ${cut ? '' : 'nocut'}${cut && pd('mailFoot') === 'out' ? ' ft-out' : ''}" style="--lcol:${lg.col.toFixed(2)}mm;--lgap:${lg.gap.toFixed(2)}mm;--lgh:${lg.h.toFixed(2)}mm">
     ${cut ? `<div class="ml-cut"></div><div class="ml-cutlbl">${L2.cut}</div>` : ''}
     <div class="ml-frame">
       <div class="ml-grid ml-head">${logo ? `<div class="lbx ml-logo"><img src="${logo}" alt=""></div>` : '<div></div>'}
@@ -6426,7 +6445,22 @@ function alignSysFoot(root){
   });
 }
 function autoFit(root){
-  autoFit0(root); alignSysFoot(root);
+  alignSysFoot(root); snRoom(root); autoFit0(root); alignSysFoot(root);
+}
+// the bottom stack's real height on each page (a long system line may wrap, more so on narrow pages or other systems' fonts):
+// the page keeps exactly that much room above it, so the line never runs into the frame / table / content
+function snRoom(root){
+  root.querySelectorAll('.page').forEach(pg => {
+    pg.style.removeProperty('--snh'); pg.style.removeProperty('--sfh');
+    const sf = pg.querySelector('.sysfoot'); if(!sf || !sf.children.length) return;
+    const z = pg.offsetWidth ? pg.getBoundingClientRect().width / pg.offsetWidth : 1, cs = getComputedStyle(pg), pk = parseFloat(cs.getPropertyValue('--pk')) || 1;
+    const S = sf.getBoundingClientRect(); let top = S.bottom;
+    [...sf.children].forEach(k => { const r = k.getBoundingClientRect(); if(r.height) top = Math.min(top, r.top); });
+    const h = (S.bottom - top) / (z || 1) / (96 / 25.4) / pk + .3;            // mm at paper scale, plus a hair of air
+    if(!(h > .3)) return;
+    if(sf.classList.contains('has-sn')){ const nom = parseFloat(cs.getPropertyValue('--snh')) || 0; if(h > nom + .05) pg.style.setProperty('--snh', h.toFixed(2) + 'mm'); }
+    else pg.style.setProperty('--sfh', h.toFixed(2) + 'mm');
+  });
 }
 function autoFit0(root){
   { // covers: fit once, every overprint copy reuses the same fit
@@ -6509,6 +6543,7 @@ function renderPrint(){
          <span class="og"><span class="lbl">สีแถบหัว</span><input type="color" data-v="banner" value="${esc(pd('banner'))}"></span>
          <span class="hint">ขนาดตัวอักษรปรับให้เต็มพื้นที่อัตโนมัติ</span>`,
     mail:`<label class="check"><input type="checkbox" data-v="mailCut" ${pd('mailCut') !== false ? 'checked' : ''}> เส้นตัด (รอยประ) สำหรับตัดแล้วติดบนซองใหญ่</label>
+         ${pd('mailCut') !== false ? `<span class="og" title="ข้อความระบบท้ายหน้าและเลขเอกสาร (บาร์โค้ด) — ในกรอบตัด: ติดไปกับป้ายที่ตัดแล้ว สแกนจากซองได้ · นอกเส้นตัด: อยู่บนเศษกระดาษที่ตัดทิ้ง"><span class="lbl">ท้ายหน้า</span><select data-v="mailFoot"><option value="in" ${pd('mailFoot') !== 'out' ? 'selected' : ''}>ในกรอบตัด (ติดไปกับซอง)</option><option value="out" ${pd('mailFoot') === 'out' ? 'selected' : ''}>นอกเส้นตัด</option></select></span>` : ''}
          <span class="og"><span class="lbl">กรอบ</span><select data-v="mailBw">${[['0','ไม่มี'],['0.75','บาง'],['1.5','ปานกลาง'],['2.4','หนา'],['3.5','หนามาก']].map(([x, t]) => `<option value="${x}" ${String(pd('mailBw') ?? '2.4') === x ? 'selected' : ''}>${t}</option>`).join('')}</select><input type="color" data-v="mailBc" value="${esc(pd('mailBc') || '#000000')}"></span>
          <span class="rng"><span class="lbl">ขนาดหัวซอง</span><input type="range" min="60" max="160" step="1" data-v="mailHs" value="${+pd('mailHs') || 100}"><input type="number" class="num" data-num="mailHs" step="1" min="40" max="200" value="${+pd('mailHs') || 100}"><span>%</span></span>
          <span class="rng"><span class="lbl">ขนาดหมายเหตุ</span><input type="range" min="60" max="160" step="1" data-v="mailNs" value="${+pd('mailNs') || 100}"><input type="number" class="num" data-num="mailNs" step="1" min="40" max="200" value="${+pd('mailNs') || 100}"><span>%</span></span>
@@ -7101,7 +7136,7 @@ $('#content').addEventListener('input', e => {
     if(k === 'scale'){ const nb = $('#sizeNum'); if(nb) nb.value = sizeShown(); }
     if(['ls', 'lh', 'mailHs', 'mailNs'].includes(k)){ const nb = document.querySelector(`[data-num="${k}"]`); if(nb) nb.value = t.value; }
     if(k === 'paper'){ setPd('scale', 100); save(); }
-    if(['font', 'frame', 'red', 'envOrient', 'names', 'sign', 'sizeUnit', 'paper', 'autoSize', 'seatSplit', 'mailCut'].includes(k)){ renderPrint(); return; }
+    if(['font', 'frame', 'red', 'envOrient', 'names', 'sign', 'sizeUnit', 'paper', 'autoSize', 'seatSplit', 'mailCut', 'mailFoot'].includes(k)){ renderPrint(); return; }
     refreshPreview(); return;
   }
   onEditInput(t);
@@ -8155,6 +8190,36 @@ async function buildDocx(ex, doc){
   let body = '', land = false, mar = { t:900, b:800, l:900, r:900 };
   const PGW = Math.round(paperMM(false)[0] * 1440 / 25.4), PGH = Math.round(paperMM(false)[1] * 1440 / 25.4), PKM = paperK();
   const scaleMar = () => { for(const kk in mar) mar[kk] = Math.round(mar[kk] * PKM); };
+  const footTxt0 = doc !== 'cover' && sysFootOn() ? sysFootText(ex) : '';
+  const snC = snOn(doc) ? docSerial(ex, doc) : '', snP = snC ? snPng(snC, ex, snFmt(ex, doc)) : null;
+  let footIn = false;   // envelope with a cut line: the stack can sit inside the cut-out label instead of in the page footer
+  // the bottom stack (system line + document code) as Word paragraphs across a width FW (twips); rid = the code picture
+  const footXml = (FW, rid) => {
+    // system line, then the document code under it — both right-aligned to the same margin
+    const sf = snFmt(ex, doc), jc = sf.align, tj = sf.talign, iR = snP && rid ? IMG(rid, snP.wmm, snP.hmm) : '';
+    // beside the code: the line's letters at the top / middle / bottom of the bars (w:position, half-points, + = up)
+    let pos = 0;
+    if(snP && sf.order === 'inline'){
+      const gPt = 6.5 * .58, mm2pt = 72 / 25.4;   // Word sizes small Thai fonts up to match the preview, so the letter height follows the preview's
+      const b0 = snP.barBot * mm2pt, bh = snP.barH * mm2pt;
+      pos = Math.round(2 * (sf.tv === 'top' ? b0 + bh - gPt : sf.tv === 'bottom' ? b0 : b0 + (bh - gPt) / 2));
+    }
+    const tR = footTxt0 ? R(footTxt0, { sz:6.5, color:'8A8A8A', pos }) : '';
+    const TAB = '<w:r><w:tab/></w:r>';
+    // text and code at different sides: a borderless table with a column for each, so a long line wraps in its own column
+    // (tab stops would push the code onto the next line, as soon as the text passes the middle tab)
+    const tabbed = () => {
+      const slot = { left:'', center:'', right:'' }, iw = Math.round(snP.wmm * 56.693) + 60, va = sf.tv === 'top' ? 'top' : sf.tv === 'bottom' ? 'bottom' : 'center';
+      slot[tj] = P(R(footTxt0, { sz:6.5, color:'8A8A8A' }), { jc:tj }); slot[jc] = P(iR, { jc });
+      const half = Math.round((FW - iw) / 2), cols = !slot.center ? [['left', jc === 'left' ? iw : FW - iw], ['right', jc === 'right' ? iw : FW - iw]]
+        : jc === 'center' ? [['left', half], ['center', FW - 2 * half], ['right', half]] : [['left', iw], ['center', FW - 2 * iw], ['right', iw]];
+      const cell = ([k, w]) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:vAlign w:val="${va}"/></w:tcPr>${slot[k] || '<w:p/>'}</w:tc>`;
+      return `<w:tbl><w:tblPr><w:tblW w:w="${FW}" w:type="dxa"/><w:jc w:val="left"/><w:tblBorders>${bset('nil', 0)}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${cols.map(c => `<w:gridCol w:w="${c[1]}"/>`).join('')}</w:tblGrid><w:tr>${cols.map(cell).join('')}</w:tr></w:tbl>${P('', { line:20, sz:1 })}`;
+    };
+    return !tR ? P(iR, { jc }) : !iR ? P(tR, { jc:tj }) : sf.order === 'inline' ? (jc === tj ? P(jc === 'left' ? iR + R('   ', { sz:6.5 }) + tR : tR + R('   ', { sz:6.5 }) + iR, { jc }) : tabbed())
+      : sf.order === 'above' ? P(iR, { jc }) + P(tR, { jc:tj, before:30 }) : P(tR, { jc:tj }) + P(iR, { jc, before:30 });
+  };
+
   const media = [];
   const addMedia = async du => {
     const img = new Image(); img.src = du; try{ await img.decode(); }catch(e){ return null; }
@@ -8290,6 +8355,8 @@ async function buildDocx(ex, doc){
     land = true;
     const cut = pd('mailCut') !== false;
     mar = cut ? { t:740, b:960, l:1134, r:1020 } : { t:680, b:680, l:680, r:680 }; scaleMar();
+    footIn = cut && pd('mailFoot') !== 'out' && !!(footTxt0 || snP);
+    var mlSn = footIn && snP ? await addMedia(snP.url) : null;
     const OW = PGH - mar.l - mar.r, GX = cut ? Math.round(312 * PKM) : 0, GY = cut ? Math.round(340 * PKM) : 0, TW = OW - 2 * GX, CM = Math.round(340 * PKM), IW = TW - 2 * CM, en = ex.lang === 'en', L2 = mailLabels(en), H = mailHead();
     const bw = pd('mailBw') != null ? +pd('mailBw') : 2.4, bc = (pd('mailBc') || '#000000').replace('#', '').toUpperCase();
     const LG = mailLogoGeo(), LW = Math.round(LG.body * 56.693 * PKM), LWH = Math.round((LG.col + LG.gap - 5.5) * 56.693 * PKM), SZ = 10, RS = 15.5, USC = (+pd('scale') || 100) / 100, HS = 10 * ((+pd('mailHs') || 100) / 100) / USC, NS = 17 * ((+pd('mailNs') || 100) / 100) / USC;
@@ -8320,8 +8387,11 @@ async function buildDocx(ex, doc){
       if(m.noteOn && (m.note || '').trim()) c += P('', { line:Math.round(1000 * PKM), sz:2 }) + P(R(L2.note + ' ', { sz:NS }) + R(m.note.trim(), { b:true, sz:NS }), { jc:'center', shd:'D9D9D9', before:0 });
       c += P('', { line:60, sz:2 });
       const avail = PGW - mar.t - mar.b - (cut ? 300 : 0) - 420;
-      const frame = cellTbl(TW, c, bw > 0 ? bset('single', Math.max(2, Math.round(bw * 8)), bc) : bset('nil', 0), [Math.round(280 * PKM), CM, Math.round(280 * PKM)], avail - 2 * GY);
-      if(cut) body += P(R(L2.cut, { sz:8.5 / ((+pd('scale') || 100) / 100), color:'333333' }), { line:300 }) + cellTbl(OW, frame + P('', { line:40, sz:2 }), bset('dashed', 6), [GY, GX, GY], avail);
+      // inside the label: the stack under the frame, its edges on the frame's edges (as on screen)
+      const stk = footIn ? P('', { line:Math.round(80 * PKM), sz:2 }) + footXml(TW, mlSn && mlSn.rid) : '';
+      const stkH = footIn ? Math.round(((snP ? snP.hmm : 0) + (footTxt0 ? 3.4 : 0) + 2) * 56.693 * PKM) : 0;
+      const frame = cellTbl(TW, c, bw > 0 ? bset('single', Math.max(2, Math.round(bw * 8)), bc) : bset('nil', 0), [Math.round(280 * PKM), CM, Math.round(280 * PKM)], avail - 2 * GY - stkH);
+      if(cut) body += P(R(L2.cut, { sz:8.5 / ((+pd('scale') || 100) / 100), color:'333333' }), { line:300 }) + cellTbl(OW, frame + stk + P('', { line:40, sz:2 }), bset('dashed', 6), [GY, GX, GY], avail);
       else body += frame;
     });
     if(!(ex.mails || []).length) body += P();
@@ -8450,9 +8520,7 @@ async function buildDocx(ex, doc){
   const pg = land ? `<w:pgSz w:w="${PGH}" w:h="${PGW}" w:orient="landscape"/>` : `<w:pgSz w:w="${PGW}" w:h="${PGH}"/>`;
   const fst = frameStops(), fbase = pd('frame') === 'custom' ? pd('frameColor') : (FRAMES[pd('frame')] || {}).base, fcol = fst ? (fbase || fst[2][1]).replace('#', '').toUpperCase() : '';
   const envB = doc === 'env' && +state.view.envBw > 0 ? `<w:pgBorders w:offsetFrom="page">${['top','left','bottom','right'].map(sd => `<w:${sd} w:val="single" w:sz="${Math.max(2, Math.min(96, Math.round(+state.view.envBw * 8)))}" w:space="24" w:color="${(state.view.envBc || '#000000').replace('#', '').toUpperCase()}"/>`).join('')}</w:pgBorders>` : '';
-  const footTxt0 = doc !== 'cover' && sysFootOn() ? sysFootText(ex) : '';
-  const snC = snOn(doc) ? docSerial(ex, doc) : '', snP = snC ? snPng(snC, ex, snFmt(ex, doc)) : null;
-  const footTxt = footTxt0 || (snP ? ' ' : '');   // a footer part is needed for either
+  const footTxt = footIn ? '' : footTxt0 || (snP ? ' ' : '');   // a footer part is needed for either (not when the envelope label holds it)
   const mailCutB = false ? `<w:pgBorders w:offsetFrom="text">${['top','left','bottom','right'].map(sd => `<w:${sd} w:val="dashed" w:sz="6" w:space="17" w:color="000000"/>`).join('')}</w:pgBorders>` : '';
   const pgB = mailCutB ? mailCutB : envB ? envB : (doc === 'ann' || doc === 'notice') && fst ? `<w:pgBorders w:offsetFrom="page">${['top','left','bottom','right'].map(sd => `<w:${sd} w:val="single" w:sz="48" w:space="16" w:color="${fcol}"/>`).join('')}</w:pgBorders>` : '';
   const sect = `<w:sectPr>${footTxt ? '<w:footerReference w:type="default" r:id="rIdFooter"/>' : ''}${pg}<w:pgMar w:top="${mar.t}" w:right="${mar.r}" w:bottom="${mar.b}" w:left="${mar.l}" w:header="0" w:footer="${footTxt ? 280 : 0}" w:gutter="0"/>${pgB}</w:sectPr>`;
@@ -8468,22 +8536,7 @@ async function buildDocx(ex, doc){
   if(logo) files.push({ name:'word/media/logo.png', data:logo.bytes });
   media.forEach(m => files.push({ name:'word/' + m.name, data:m.bytes }));
   if(footTxt){
-    // system line, then the document code under it — both right-aligned to the same margin
-    const sf = snFmt(ex, doc), jc = sf.align, tj = sf.talign, iR = snP ? IMG('rIdSn', snP.wmm, snP.hmm) : '';
-    // beside the code: the line's letters at the top / middle / bottom of the bars (w:position, half-points, + = up)
-    let pos = 0;
-    if(snP && sf.order === 'inline'){
-      const gPt = 6.5 * .58, mm2pt = 72 / 25.4;   // Word sizes small Thai fonts up to match the preview, so the letter height follows the preview's
-      const b0 = snP.barBot * mm2pt, bh = snP.barH * mm2pt;
-      pos = Math.round(2 * (sf.tv === 'top' ? b0 + bh - gPt : sf.tv === 'bottom' ? b0 : b0 + (bh - gPt) / 2));
-    }
-    const tR = footTxt0 ? R(footTxt0, { sz:6.5, color:'8A8A8A', pos }) : '';
-    const FW = PGW - mar.l - mar.r, TAB = '<w:r><w:tab/></w:r>';
-    const tabbed = () => { const slot = { left:[], center:[], right:[] }; slot[tj].push(tR); slot[jc].push(iR);
-      return `<w:p><w:pPr><w:tabs><w:tab w:val="center" w:pos="${Math.round(FW / 2)}"/><w:tab w:val="right" w:pos="${FW}"/></w:tabs><w:spacing w:before="0" w:after="0"/></w:pPr>${slot.left.join('')}${TAB}${slot.center.join('')}${TAB}${slot.right.join('')}</w:p>`; };
-    const body = !tR ? P(iR, { jc }) : !iR ? P(tR, { jc:tj }) : sf.order === 'inline' ? (jc === tj ? P(jc === 'left' ? iR + R('   ', { sz:6.5 }) + tR : tR + R('   ', { sz:6.5 }) + iR, { jc }) : tabbed())
-      : sf.order === 'above' ? P(iR, { jc }) + P(tR, { jc:tj, before:30 }) : P(tR, { jc:tj }) + P(iR, { jc, before:30 });
-    files.push({ name:'word/footer1.xml', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:ftr ${NS}>${body}</w:ftr>` });
+    files.push({ name:'word/footer1.xml', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:ftr ${NS}>${footXml((land ? PGH : PGW) - mar.l - mar.r, 'rIdSn')}</w:ftr>` });
     if(snP){ files.push({ name:'word/_rels/footer1.xml.rels', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdSn" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/sn.png"/></Relationships>` }); files.push({ name:'word/media/sn.png', data:snP.bytes }); }
   }
   return zip(files);
@@ -8968,7 +9021,7 @@ $('#importFile').addEventListener('change', e => {
 });
 
 /* ================= about / branding ================= */
-const APP = { short:'MEDSWU-EAD', version:'3.29.1', year:2026, email:'yotinj@g.swu.ac.th' };
+const APP = { short:'MEDSWU-EAD', version:'3.29.2', year:2026, email:'yotinj@g.swu.ac.th' };
 const ABOUT = {
   th:{ full:'ระบบจัดทำเอกสารการดำเนินการสอบ คณะแพทยศาสตร์ มหาวิทยาลัยศรีนครินทรวิโรฒ', sub:'ระบบจัดทำเอกสารการดำเนินการสอบ',
        dev:'อาจารย์ ดร.โยธิน จูประสงค์ ภาควิชาชีวเคมี คณะแพทยศาสตร์ มหาวิทยาลัยศรีนครินทรวิโรฒ',
