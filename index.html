@@ -819,6 +819,12 @@ aside{padding-bottom:env(safe-area-inset-bottom,0px)}
 .mm-fline{margin-bottom:1.6mm}
 .mm-fbox{position:relative;display:flex;align-items:center}
 .mm-flogo{position:absolute;left:0;top:50%;transform:translateY(-50%)}
+.mm-flogo.mm-fl-edge{top:auto;transform:none}
+.mm-ftw{display:inline-block;position:relative;text-align:inherit;vertical-align:top}
+.mm-flogo.mm-fl-text{left:auto;transform:none}
+.mm-fgrp{display:flex;text-align:left}
+.mm-fgrp > div{flex:1;min-width:0}
+.mm-flogo.mm-fl-in{position:static;transform:none;flex:none}
 .mm-ftext{flex:1;line-height:1.35}
 .mm-top{position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:2.5mm}
 .mm-logo{position:absolute;left:0;top:0}
@@ -1110,7 +1116,8 @@ label.f .dk-valrow textarea{min-height:44px}
 .snb.t-below{flex-direction:column-reverse;align-items:center;gap:.8mm}
 .snb.t-above{flex-direction:column;align-items:center;gap:.8mm}
 .snb-t{font-size:6.8pt;font-weight:600;font-variant-numeric:tabular-nums;font-family:var(--docfont);white-space:nowrap}
-.snb.t-left .snb-t,.snb.t-right .snb-t{margin-bottom:-.14em}
+.snb.t-left,.snb.t-right{align-items:center}
+.snb.t-left .snb-t,.snb.t-right .snb-t{position:relative}
 .snb-code{display:block;flex:none}
 .page .snb,.page .snb *{letter-spacing:normal}
 .page .snb-t{letter-spacing:.06em}
@@ -1132,7 +1139,7 @@ label.f .dk-valrow textarea{min-height:44px}
 /* memo: the code in the footer row (the logo takes the other side), or centred under the footer text */
 .mm-fsn{position:absolute;right:0;top:50%;transform:translateY(-50%)}
 .mm-sn-left .mm-fsn{right:auto;left:0}
-.mm-sn-left .mm-flogo{left:auto;right:0}
+.mm-sn-left .mm-flogo.mm-fl-edge{left:auto;right:0}
 .mm-sn-center{flex-direction:column}
 .mm-sn-center .mm-ftext{width:100%}
 .mm-sn-center .mm-fsn{position:static;transform:none;margin-top:1mm}
@@ -3770,7 +3777,7 @@ function mmBase(D, subj = '', to = '', en = D.en){
       ],
       labelSize:16, valSize:16, split:52, dotted:false, rule:true, ruleW:1, ruleC:'#000000', gap:1.5,
       toOn:true, toLabel:T[6], to, toBefore:5 },
-    foot:{ on:true, line:true, lineW:0.75, lineC:'#000000', text:D.foot, size:10, bold:true, align:'center', logo:true, logoSrc:'medswu', logoImg:'', logoH:7.5 },
+    foot:{ on:true, line:true, lineW:0.75, lineC:'#000000', text:D.foot, size:10, bold:true, align:'center', logo:true, logoSrc:'medswu', logoImg:'', logoH:7.5, logoPos:'text', logoV:'center', logoGap:4, logoDy:0 },
     page:{ mt:17, mr:14.5, mb:12, ml:18, num:false, numFmt:en ? 'arabic' : 'thai', numFirst:false, cont:true, size:16, indent:en ? 0 : 25 }
   };
 }
@@ -3906,11 +3913,33 @@ function mmFootHtml(m, ex, map){
   const F = m.foot, sb = snBlockInfo(ex, 'memo'), al = snFmt(ex, 'memo').align, side = sb && al !== 'center';
   const logo = F.on && F.logo ? mmImgSrc(F.logoSrc, F.logoImg, ex) : '';
   if(!F.on && !sb) return '';
-  const pad = side ? `padding:0 ${(sb.w + 2).toFixed(1)}mm;` : '';
-  const minH = Math.max(logo ? +F.logoH || 7.5 : 0, side ? sb.h : 0);
+  const L = mmFootLogo(F), lh = L.h, dy = logo ? L.dy : 0, alT = F.align || 'center';
+  // room for the code: both sides when the text is centred (keeps it on the page centre), else only the code's side
+  const sp = side ? (sb.w + 2).toFixed(1) + 'mm' : 0;
+  const pad = !side ? '' : alT === 'center' ? `padding:0 ${sp};` : al === 'left' ? `padding-left:${sp};` : `padding-right:${sp};`;
+  const minH = Math.max(logo ? lh + Math.abs(dy) * (L.v === 'center' ? 2 : 1) : 0, side ? sb.h : 0);
+  const va = L.v === 'top' ? 'flex-start' : L.v === 'bottom' ? 'flex-end' : 'center', al0 = F.align || 'center';
+  const txt = F.on ? mmText(F.text, map) : '';
+  const shift = dy ? `translateY(${dy.toFixed(2)}mm)` : '';
+  let inner;
+  if(logo && al0 === 'left'){                             // logo, then the text, from the left edge
+    inner = `<div class="mm-ftext" style="${pad}font-size:${MM_FS(+F.size || 10)};font-weight:${F.bold ? 700 : 400};text-align:left"><div class="mm-fgrp" style="align-items:${va};gap:${L.gap}mm"><img class="mm-flogo mm-fl-in" src="${esc(logo)}" style="height:${lh}mm;${shift ? `transform:${shift}` : ''}" alt=""><div>${txt}</div></div></div>`;
+  } else if(logo && L.pos === 'text'){                    // the text stays where it is (centre / right); the logo sits just before it
+    const vpos = L.v === 'top' ? 'top:0;' : L.v === 'bottom' ? 'bottom:0;' : 'top:50%;';
+    const tf = L.v === 'center' ? `translateY(calc(-50% + ${dy.toFixed(2)}mm))` : shift;
+    inner = `<div class="mm-ftext" style="${pad}font-size:${MM_FS(+F.size || 10)};font-weight:${F.bold ? 700 : 400};text-align:${al0}"><div class="mm-ftw"><img class="mm-flogo mm-fl-text" src="${esc(logo)}" style="height:${lh}mm;right:calc(100% + ${L.gap}mm);${vpos}${tf ? `transform:${tf}` : ''}" alt="">${txt}</div></div>`;
+  } else {                                                // logo at the page edge
+    inner = `${logo ? `<img class="mm-flogo mm-fl-edge" src="${esc(logo)}" style="height:${lh}mm;align-self:${va};${shift ? `transform:${shift}` : ''}" alt="">` : ''}
+    <div class="mm-ftext" style="${pad}font-size:${MM_FS(+F.size || 10)};font-weight:${F.bold ? 700 : 400};text-align:${al0}">${txt}</div>`;
+  }
   return `<div class="mm-foot" data-bid="foot">${F.on && F.line ? `<div class="mm-fline" style="border-top:${+F.lineW || .75}pt solid ${esc(F.lineC || '#000')}"></div>` : ''}
-    <div class="mm-fbox${sb ? ` mm-sn-${al}` : ''}" style="min-height:${minH}mm">${logo ? `<img class="mm-flogo" src="${esc(logo)}" style="height:${+F.logoH || 7.5}mm" alt="">` : ''}
-    <div class="mm-ftext" style="${pad}font-size:${MM_FS(+F.size || 10)};font-weight:${F.bold ? 700 : 400};text-align:${F.align || 'center'}">${F.on ? mmText(F.text, map) : ''}</div>${sb ? `<div class="mm-fsn">${sb.html}</div>` : ''}</div></div>`;
+    <div class="mm-fbox${sb ? ` mm-sn-${al}` : ''}" style="min-height:${minH.toFixed(2)}mm;align-items:${va}">${inner}${sb ? `<div class="mm-fsn">${sb.html}</div>` : ''}</div></div>`;
+}
+// footer logo placement; the MEDSWU logo is centred on its lettering (its + mark sits above the letters)
+function mmFootLogo(F){
+  const h = +F.logoH || 7.5, v = ['top', 'bottom'].includes(F.logoV) ? F.logoV : 'center';
+  const opt = v === 'center' && F.logoSrc === 'medswu' ? -.245 * h : 0;
+  return { h, v, pos:F.logoPos === 'edge' ? 'edge' : 'text', gap:F.logoGap === '' || F.logoGap == null || !isFinite(+F.logoGap) ? 4 : Math.max(0, +F.logoGap), dy:opt + (+F.logoDy || 0) };
 }
 function mmBlockHtml(b, m, ex, map){
   const P = m.page, sz = n => MM_FS(+n || +P.size || 16);
@@ -4213,7 +4242,9 @@ function memoEditor(ex){
     <div class="dkchk">${KC('foot.on', Fo.on, 'แสดงท้ายกระดาษ')}${KC('foot.line', Fo.line, 'เส้นคั่นด้านบน')}${KC('foot.bold', Fo.bold, 'ตัวหนา')}</div>
     <label class="f" style="margin-top:8px"><span class="ttl">ข้อความ</span><textarea data-mmk="foot.text" rows="2">${esc(Fo.text)}</textarea></label>
     <div class="dkg c4">${F('ขนาด pt', K('foot.size', Fo.size, 'number'))}${F('จัดแนว', KS('foot.align', Fo.align, [['left', 'ชิดซ้าย'], ['center', 'กึ่งกลาง'], ['right', 'ชิดขวา']]))}${F('เส้นหนา pt', K('foot.lineW', Fo.lineW, 'number', '0.25'))}${F('สีเส้น', `<input type="color" data-mmk="foot.lineC" value="${esc(Fo.lineC || '#000000')}">`)}</div>
-    <div class="dkg c4"><div class="f dkchk2">${KC('foot.logo', Fo.logo, 'โลโก้ซ้าย')}</div>${F('รูป', KS('foot.logoSrc', Fo.logoSrc, srcs), 'span2')}${F('สูง มม.', K('foot.logoH', Fo.logoH, 'number'))}</div>
+    <div class="dkg c4"><div class="f dkchk2">${KC('foot.logo', Fo.logo, 'แสดงโลโก้')}</div>${F('รูป', KS('foot.logoSrc', Fo.logoSrc, srcs), 'span2')}${F('สูง มม.', K('foot.logoH', Fo.logoH, 'number'))}</div>
+    ${Fo.logo ? `<div class="dkg c4">${F('ตำแหน่งโลโก้', KS('foot.logoPos', Fo.logoPos === 'edge' ? 'edge' : 'text', [['text', 'ชิดข้อความ'], ['edge', 'ชิดขอบซ้าย']]))}${F('แนวตั้ง', KS('foot.logoV', ['top', 'bottom'].includes(Fo.logoV) ? Fo.logoV : 'center', [['center', 'กึ่งกลางข้อความ'], ['top', 'ชิดบน'], ['bottom', 'ชิดล่าง']]))}${Fo.logoPos === 'edge' ? '' : F('ห่างข้อความ มม.', K('foot.logoGap', Fo.logoGap ?? 4, 'number'))}${F('เลื่อน ลง(+) / ขึ้น(−) มม.', K('foot.logoDy', Fo.logoDy || 0, 'number', '0.1'))}</div>
+    <p class="hint2" style="margin:4px 0 0">“กึ่งกลางข้อความ” วางโลโก้ตรงกลางของข้อความทุกบรรทัดรวมกัน${Fo.logoSrc === 'medswu' ? ' · โลโก้ MEDSWU จัดให้ตัวอักษร MED SWU อยู่กึ่งกลาง (เครื่องหมาย + อยู่เหนือตัวอักษร)' : ''}</p>` : ''}
     ${Fo.logoSrc === 'custom' ? `<div class="lbrow" style="margin-top:8px"><button class="btn sm" data-mmact="himg" data-k="foot.logoImg">${ic('upload')}${Fo.logoImg ? 'เปลี่ยนรูป…' : 'เลือกรูป…'}</button></div>` : ''}`);
   // page
   h += mmSec('page', 'หน้ากระดาษ เลขหน้า และค่าเริ่มต้น', '', `
@@ -4772,11 +4803,31 @@ async function buildMemoDocx(ex, m){
     const tl = txt.map((t, i) => para(run(t, { n, b:!!Fo.bold }), { n, line:lineX(n, 1.35), jc:JC(Fo.align || 'center') })).join('') || para('', { line:20 });
     const line = Fo.on && Fo.line ? para('', { line:20, after:TW(1.6), border:`<w:pBdr><w:top w:val="single" w:sz="${Math.max(2, Math.round((+Fo.lineW || .75) * 8))}" w:space="0" w:color="${hex(Fo.lineC) || '000000'}"/></w:pBdr>` }) : '';
     const snSide = snF && snAl !== 'center' ? snF : null;
-    const side = Math.min(CW / 3, Math.max(lgF ? lgF.w + 1 : 0, snSide ? snSide.w + 1 : 0));
-    const rowH = Math.max(lgF ? +Fo.logoH || 7.5 : 0, snSide ? snSide.h : 0);
-    const lgP = lgF ? para(drawing(lgF, 'logo'), { line:240, rule:'auto', jc:snAl === 'left' ? 'right' : 'left' }) : '';
+    const L = mmFootLogo(Fo), va = L.v, dyL = lgF ? L.dy : 0;
+    // inline picture raised / lowered by w:position (half-points, + = up)
+    const lgRun = lgF ? drawing(lgF, 'logo').replace('<w:r>', dyL ? `<w:r><w:rPr><w:position w:val="${Math.round(-dyL * 72 / 25.4 * 2)}"/></w:rPr>` : '<w:r>') : '';
+    const rowH = Math.max(lgF ? L.h + Math.abs(dyL) * (va === 'center' ? 2 : 1) : 0, snSide ? snSide.h : 0);
     const snPp = snF ? para(drawing(snF, 'document code'), { line:240, rule:'auto', jc:snAl, before:snSide ? 0 : TW(1) }) : '';
-    footer = line + (side ? plainTbl([side, CW - 2 * side, side], snAl === 'left' && snSide ? [snPp, tl, lgP] : [lgP, tl, snSide ? snPp : ''], { h:rowH }) + (snSide ? '' : snPp) + para('', { line:20 }) : tl + snPp);
+    let tbl = '';
+    const alF = Fo.align || 'center';
+    if(lgF && (L.pos === 'text' || alF === 'left')){
+      // same geometry as the preview: room for the code (both sides when centred), the text block where it belongs,
+      // the logo L.gap mm before the text
+      const sW = snSide ? snSide.w + 2 : 0, pL = !snSide ? 0 : alF === 'center' || snAl === 'left' ? sW : 0, pR = !snSide ? 0 : alF === 'center' || snAl !== 'left' ? sW : 0;
+      const avail = CW - pL - pR - (alF === 'left' ? lgF.w + L.gap : 0);
+      const tw = Math.min(avail, Math.max(10, ...txt.map(t => textMM(t, n, !!Fo.bold))) + 1.5);
+      const x0 = alF === 'left' ? pL + lgF.w + L.gap : alF === 'right' ? CW - pR - tw : pL + (CW - pL - pR - tw) / 2;
+      const c0 = Math.max(0, x0 - L.gap - lgF.w), c4 = Math.max(0, CW - x0 - tw);
+      const al = alF;
+      const lgP = para(lgRun, { line:240, rule:'auto', jc:'right' });
+      const tlW = txt.map((t, i) => para(run(t, { n, b:!!Fo.bold }), { n, line:lineX(n, 1.35), jc:JC(al) })).join('') || para('', { line:20 });
+      tbl = plainTbl([c0, lgF.w, L.gap, tw, c4].map(w => Math.max(.1, w)), [snSide && snAl === 'left' ? snPp : '', lgP, '', tlW, snSide && snAl !== 'left' ? snPp : ''], { h:rowH, va });
+    } else {
+      const side = Math.min(CW / 3, Math.max(lgF ? lgF.w + 1 : 0, snSide ? snSide.w + 1 : 0));
+      const lgP = lgF ? para(lgRun, { line:240, rule:'auto', jc:snAl === 'left' ? 'right' : 'left' }) : '';
+      if(side) tbl = plainTbl([side, CW - 2 * side, side], snAl === 'left' && snSide ? [snPp, tl, lgP] : [lgP, tl, snSide ? snPp : ''], { h:rowH, va });
+    }
+    footer = line + (tbl ? tbl + (snSide ? '' : snPp) + para('', { line:20 }) : tl + snPp);
     footH = 1 + (Fo.on && Fo.line ? 1.6 + .5 : 0) + Math.max(rowH, txt.length * cssPt(n) * 1.35 * LHK * 25.4 / 72) + (snF && !snSide ? snF.h + 1 : 0);
   }
   const numOn = !!P0.num, numFirst = !!P0.numFirst;
@@ -5314,11 +5365,27 @@ function snBlockInfo(ex, doc = state.view.doc, force){
   const code = docSerial(ex, doc); if(!code) return null;
   return snBlockFor(code, snPretty(code, ex), snFmt(ex, doc));
 }
+// how far (em) to move the readable code so its letters/digits sit exactly at mid-height of the bars:
+// the line box centre is not the centre of the capitals/digits, and the gap differs per font
+const snTyCache = {};
+function snTextTy(family){
+  if(snTyCache[family] != null) return snTyCache[family];
+  try{
+    const g = document.createElement('canvas').getContext('2d'); g.font = `600 100px ${family}`;
+    const m = g.measureText('X-BC0123456789'), A = m.fontBoundingBoxAscent, D = m.fontBoundingBoxDescent, cap = m.actualBoundingBoxAscent;
+    if(!(A > 0) || !(cap > 0)) return 0;
+    const base = 50 - (A + D) / 2 + A;                // baseline inside a 1em (line-height:1) box, from its top
+    const v = +((50 - (base - cap / 2)) / 100).toFixed(4);   // + = move down
+    if(document.fonts && document.fonts.status === 'loaded') snTyCache[family] = v;
+    return v;
+  }catch(e){ return 0; }
+}
 function snBlockFor(code, pretty, f = snFmt()){
   const d = snCodeDims(code, f); if(!d) return null;
   const tw = f.text === 'none' ? 0 : snTextW(pretty);
   const w = f.text === 'left' || f.text === 'right' ? d.w + SN_GAP + tw : Math.max(d.w, tw), h = snBlockH(f);
-  const t = f.text === 'none' ? '' : `<span class="snb-t">${esc(pretty)}</span>`;
+  const ty = f.text === 'left' || f.text === 'right' ? snTextTy(fontInfo().family) : 0;
+  const t = f.text === 'none' ? '' : `<span class="snb-t"${ty ? ` style="top:${ty}em"` : ''}>${esc(pretty)}</span>`;
   return { w, h, d, html:`<div class="snb t-${f.text}" data-sn="${code}">${t}${snCodeSvg(d)}</div>` };
 }
 function snBlock(ex, doc = state.view.doc){ const b = snBlockInfo(ex, doc); return b ? b.html : ''; }
@@ -5342,7 +5409,8 @@ function snPng(code, ex, f = snFmt()){
   else { let x = cx; d.widths.forEach((m, i) => { if(i % 2 === 0) g.fillRect(x, cy, m * unit, ch); x += m * unit; }); }
   if(txt){
     g.fillStyle = '#333'; g.font = g0.font; g.textBaseline = 'alphabetic';
-    if(side){ g.textAlign = f.text === 'left' ? 'left' : 'right'; g.fillText(txt, f.text === 'left' ? 0 : W, H - Math.round(fpx * .1)); }
+    if(side){ const mt = g.measureText(txt), y = cy + ch / 2 + (mt.actualBoundingBoxAscent - mt.actualBoundingBoxDescent) / 2;   // letters centred on the bars
+      g.textAlign = f.text === 'left' ? 'left' : 'right'; g.fillText(txt, f.text === 'left' ? 0 : W, Math.round(y)); }
     else { g.textAlign = 'center'; g.fillText(txt, W / 2, f.text === 'above' ? Math.round(fpx * .86) : H - Math.round(fpx * .14)); }
   }
   const url = cv.toDataURL('image/png');
