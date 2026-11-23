@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<script>if(/iP(ad|hone|od)/.test(navigator.platform)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1))document.querySelector('meta[name=viewport]').content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";</script>
+<script>if(/iP(ad|hone|od)/.test(navigator.platform)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)){document.querySelector('meta[name=viewport]').content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
+if(navigator.standalone||matchMedia('(display-mode: standalone)').matches)document.documentElement.classList.add('ios-app');}</script>
 <title>MEDSWU-EAD</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
@@ -775,11 +776,15 @@ label.f select,div.f > select{padding-top:0;padding-bottom:0}
 .content,.exam-list,.preview-wrap,.nt-ed,.modal-bg{overscroll-behavior:contain}
 /* iPad home-screen app: the strip under the status bar (clock / battery) and the home-indicator strip are our own solid white,
    so iPadOS has nothing colourful to blur there */
-body::before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);background:#fff;z-index:2147483000;pointer-events:none}
-body{padding-top:env(safe-area-inset-top,0px);background:#fff}
-@media (min-width:701px){ .app{height:calc(100vh - env(safe-area-inset-top,0px));height:calc(100dvh - env(safe-area-inset-top,0px))} }
+html{--tb:env(safe-area-inset-top,0px)}
+/* iPad home-screen app: iPadOS softens (blurs) the top edge of the window under the clock / window buttons —
+   keep a plain white strip there so the program's own bar starts below it and stays sharp */
+html.ios-app{--tb:max(calc(env(safe-area-inset-top,0px) + 14px), 46px)}
+body::before{content:'';position:fixed;left:0;right:0;top:0;height:var(--tb);background:#fff;z-index:2147483000;pointer-events:none}
+body{padding-top:var(--tb);background:#fff}
+@media (min-width:701px){ .app{height:calc(100vh - var(--tb));height:calc(100dvh - var(--tb))} }
 .app{background:var(--bg)}
-.welcome{top:env(safe-area-inset-top,0px)}
+.welcome{top:var(--tb)}
 aside{padding-bottom:env(safe-area-inset-bottom,0px)}
 .zoomdock{bottom:calc(18px + env(safe-area-inset-bottom,0px))}
 /* on screen the code is drawn smooth (true bar widths at any zoom); files and print keep razor-sharp bars */
@@ -822,8 +827,10 @@ aside{padding-bottom:env(safe-area-inset-bottom,0px)}
 .mm-flogo.mm-fl-edge{top:auto;transform:none}
 .mm-ftw{display:inline-block;position:relative;text-align:inherit;vertical-align:top}
 .mm-flogo.mm-fl-text{left:auto;transform:none}
-.mm-fgrp{display:flex;text-align:left}
-.mm-fgrp > div{flex:1;min-width:0}
+.mm-fgrp{display:flex}
+.mm-fgt{flex:0 1 auto;min-width:0}
+.mm-sntv-top .mm-fsn{top:0;transform:none}
+.mm-sntv-bottom .mm-fsn{top:auto;bottom:0;transform:none}
 .mm-flogo.mm-fl-in{position:static;transform:none;flex:none}
 .mm-ftext{flex:1;line-height:1.35}
 .mm-top{position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:2.5mm}
@@ -1091,9 +1098,12 @@ label.f .dk-valrow textarea{min-height:44px}
 .sysfoot.has-sn.sf-o-inline{flex-direction:row;align-items:flex-end;justify-content:flex-end}
 .sysfoot.has-sn.sf-o-inline.sf-al-center{justify-content:center}
 .sysfoot.has-sn.sf-o-inline.sf-al-left{flex-direction:row-reverse}
-.sysfoot.has-sn.sf-o-inline .sf-t{margin-bottom:-.1em}
-.sysfoot.has-sn.sf-o-inline.sf-split{display:grid;align-items:end;column-gap:calc(3mm*var(--pk,1))}
+.sysfoot.has-sn.sf-o-inline .sf-t{margin-bottom:0}
+.sysfoot.has-sn.sf-o-inline.sf-split{display:grid;align-items:center;column-gap:calc(3mm*var(--pk,1))}
 .sysfoot.has-sn.sf-o-inline.sf-split > .sf-t{white-space:normal;min-width:0;margin-bottom:0}
+.sysfoot.has-sn.sf-o-inline > .sf-t{line-height:1.3}
+.sysfoot.has-sn.sf-o-inline{align-items:center}
+.sysfoot.has-sn.sf-o-inline > .snb{align-self:center}
 .sysfoot.has-sn.sf-o-inline.sf-split.sf-ta-left > .sf-t{text-align:left}
 .sysfoot.has-sn.sf-o-inline.sf-split.sf-ta-center > .sf-t{text-align:center}
 .sysfoot.has-sn.sf-o-inline.sf-split.sf-ta-right > .sf-t{text-align:right}
@@ -3767,7 +3777,7 @@ function newMemo(ex, tpl = 'blank'){
 function mmBase(D, subj = '', to = '', en = D.en){
   const T = en ? ['MEMORANDUM', 'Department', 'Tel.', 'Ref. No.', 'Date', 'Subject', 'To'] : ['บันทึกข้อความ', 'ส่วนงาน', 'โทร', 'ที่', 'วันที่', 'เรื่อง', 'เรียน'];
   return {
-    head:{ logo:true, logoSrc:'uni', logoImg:'', logoH:16, title:T[0], titleSize:en ? 24 : 28, titleBold:true, titleAlign:'center',
+    head:{ logo:true, logoSrc:'uni', logoImg:'', logoH:16, title:T[0], titleSize:en ? 24 : 28, titleBold:true, titleAlign:'center', titleV:'center',
       fields:[
         { id:uid(), label:T[1], val:D.unit, on:true, pair:false },
         { id:uid(), label:T[2], val:D.tel, on:!en, pair:!en },   // EN: the long department name gets its own row; Tel. can be switched on
@@ -3899,7 +3909,7 @@ function mmImgSrc(src, img, ex){
 function mmHeadHtml(m, ex, map){
   const H = m.head;
   const logo = H.logo ? mmImgSrc(H.logoSrc, H.logoImg, ex) : '';
-  let h = `<div class="mm-head" data-bid="head"><div class="mm-top" style="min-height:${logo ? +H.logoH || 16 : 0}mm">${logo ? `<img class="mm-logo" src="${esc(logo)}" style="height:${+H.logoH || 16}mm" alt="">` : ''}
+  let h = `<div class="mm-head" data-bid="head"><div class="mm-top" style="min-height:${logo ? +H.logoH || 16 : 0}mm;align-items:${H.titleV === 'bottom' ? 'flex-end' : H.titleV === 'top' ? 'flex-start' : 'center'}">${logo ? `<img class="mm-logo" src="${esc(logo)}" style="height:${+H.logoH || 16}mm" alt="">` : ''}
     ${H.title ? `<div class="mm-title" style="font-size:${MM_FS(+H.titleSize || 28)};font-weight:${H.titleBold ? 700 : 400};text-align:${H.titleAlign || 'center'}">${mmText(H.title, map)}</div>` : ''}</div>`;
   const rows = []; H.fields.filter(f => f.on !== false).forEach(f => { if(f.pair && rows.length) rows[rows.length - 1].push(f); else rows.push([f]); });
   const fld = f => `<div class="mm-fld ${H.dotted ? 'dot' : ''}"><span class="mm-fl" style="font-size:${MM_FS(+H.labelSize || 16)}">${mmText(f.label, map)}</span><span class="mm-fv" style="font-size:${MM_FS(+H.valSize || 16)}">${mmText(f.val, map) || '&#8203;'}</span></div>`;
@@ -3922,18 +3932,16 @@ function mmFootHtml(m, ex, map){
   const txt = F.on ? mmText(F.text, map) : '';
   const shift = dy ? `translateY(${dy.toFixed(2)}mm)` : '';
   let inner;
-  if(logo && al0 === 'left'){                             // logo, then the text, from the left edge
-    inner = `<div class="mm-ftext" style="${pad}font-size:${MM_FS(+F.size || 10)};font-weight:${F.bold ? 700 : 400};text-align:left"><div class="mm-fgrp" style="align-items:${va};gap:${L.gap}mm"><img class="mm-flogo mm-fl-in" src="${esc(logo)}" style="height:${lh}mm;${shift ? `transform:${shift}` : ''}" alt=""><div>${txt}</div></div></div>`;
-  } else if(logo && L.pos === 'text'){                    // the text stays where it is (centre / right); the logo sits just before it
-    const vpos = L.v === 'top' ? 'top:0;' : L.v === 'bottom' ? 'bottom:0;' : 'top:50%;';
-    const tf = L.v === 'center' ? `translateY(calc(-50% + ${dy.toFixed(2)}mm))` : shift;
-    inner = `<div class="mm-ftext" style="${pad}font-size:${MM_FS(+F.size || 10)};font-weight:${F.bold ? 700 : 400};text-align:${al0}"><div class="mm-ftw"><img class="mm-flogo mm-fl-text" src="${esc(logo)}" style="height:${lh}mm;right:calc(100% + ${L.gap}mm);${vpos}${tf ? `transform:${tf}` : ''}" alt="">${txt}</div></div>`;
-  } else {                                                // logo at the page edge
+  if(logo && (L.pos === 'text' || al0 === 'left')){       // logo + text = one block, placed as the text alignment says (centre = page centre)
+    // the code beside it only takes its own side: the block is centred in the room that is left (= the page centre when there is no code beside it)
+    const jc = al0 === 'left' ? 'flex-start' : al0 === 'right' ? 'flex-end' : 'center', pad1 = !side ? '' : al === 'left' ? `padding-left:${sp};` : `padding-right:${sp};`;
+    inner = `<div class="mm-ftext" style="${pad1}font-size:${MM_FS(+F.size || 10)};font-weight:${F.bold ? 700 : 400};text-align:${al0}"><div class="mm-fgrp" style="justify-content:${jc};align-items:${va};gap:${L.gap}mm"><img class="mm-flogo mm-fl-in" src="${esc(logo)}" style="height:${lh}mm;${shift ? `transform:${shift}` : ''}" alt=""><div class="mm-fgt">${txt}</div></div></div>`;
+  } else {                                                // logo at the page edge, the text on its own
     inner = `${logo ? `<img class="mm-flogo mm-fl-edge" src="${esc(logo)}" style="height:${lh}mm;align-self:${va};${shift ? `transform:${shift}` : ''}" alt="">` : ''}
     <div class="mm-ftext" style="${pad}font-size:${MM_FS(+F.size || 10)};font-weight:${F.bold ? 700 : 400};text-align:${al0}">${txt}</div>`;
   }
   return `<div class="mm-foot" data-bid="foot">${F.on && F.line ? `<div class="mm-fline" style="border-top:${+F.lineW || .75}pt solid ${esc(F.lineC || '#000')}"></div>` : ''}
-    <div class="mm-fbox${sb ? ` mm-sn-${al}` : ''}" style="min-height:${minH.toFixed(2)}mm;align-items:${va}">${inner}${sb ? `<div class="mm-fsn">${sb.html}</div>` : ''}</div></div>`;
+    <div class="mm-fbox${sb ? ` mm-sn-${al} mm-sntv-${snFmt(ex, 'memo').tv}` : ''}" style="min-height:${minH.toFixed(2)}mm;align-items:${va}">${inner}${sb ? `<div class="mm-fsn">${sb.html}</div>` : ''}</div></div>`;
 }
 // footer logo placement; the MEDSWU logo is centred on its lettering (its + mark sits above the letters)
 function mmFootLogo(F){
@@ -4222,6 +4230,7 @@ function memoEditor(ex){
       <span class="mm-fbt"><button class="btn sm ghost" data-mmact="fup" data-id="${f.id}" ${i ? '' : 'disabled'} title="ย้ายขึ้น">${ic('up')}</button><button class="btn sm ghost danger" data-mmact="frm" data-id="${f.id}" title="ลบช่อง">${ic('x')}</button></span></div>`).join('');
   h += mmSec('head', 'หัวบันทึก', ' · โลโก้ ชื่อเอกสาร ส่วนงาน ที่ วันที่ เรื่อง เรียน', `
     <div class="dkg c4"><div class="f dkchk2">${KC('head.logo', H.logo, 'แสดงโลโก้')}</div>${F('รูป', KS('head.logoSrc', H.logoSrc, srcs), 'span2')}${F('สูง มม.', K('head.logoH', H.logoH, 'number'))}</div>
+    ${H.logo ? `<div class="dkg c4">${F('หัวเรื่องเทียบกับโลโก้ (แนวตั้ง)', KS('head.titleV', ['top', 'bottom'].includes(H.titleV) ? H.titleV : 'center', [['center', 'กึ่งกลางโลโก้'], ['bottom', 'ชิดล่างโลโก้ (แบบหนังสือราชการ)'], ['top', 'ชิดบนโลโก้']]), 'span2')}</div>` : ''}
     ${H.logoSrc === 'custom' ? `<div class="lbrow" style="margin-top:8px"><button class="btn sm" data-mmact="himg" data-k="head.logoImg">${ic('upload')}${H.logoImg ? 'เปลี่ยนรูป…' : 'เลือกรูป…'}</button></div>` : ''}
     <div class="dkg c4">${F('ชื่อเอกสาร', K('head.title', H.title), 'span2')}${F('ขนาด pt', K('head.titleSize', H.titleSize, 'number'))}${F('จัดแนว', KS('head.titleAlign', H.titleAlign, [['left', 'ชิดซ้าย'], ['center', 'กึ่งกลาง'], ['right', 'ชิดขวา']]))}</div>
     <div class="dkchk">${KC('head.titleBold', H.titleBold, 'ชื่อเอกสารตัวหนา')}</div>
@@ -4683,7 +4692,7 @@ async function buildMemoDocx(ex, m){
   const lg = logoSrcH ? await addImg(logoSrcH, 'document', 0, +H.logoH || 16) : null;
   if(lg){
     const side = Math.min(CW / 3, lg.w + 1);
-    body += plainTbl([side, CW - 2 * side, side], [para(drawing(lg, 'logo'), { line:240, rule:'auto' }), title || para('', { line:20 }), ''], { h:+H.logoH || 16 });
+    body += plainTbl([side, CW - 2 * side, side], [para(drawing(lg, 'logo'), { line:240, rule:'auto' }), title || para('', { line:20 }), ''], { h:+H.logoH || 16, va:H.titleV === 'bottom' ? 'bottom' : H.titleV === 'top' ? 'top' : 'center' });
   }else if(title) body += title;
   // ---- fields ----
   const lN = +H.labelSize || 16, vN = +H.valSize || 16, fN = Math.max(lN, vN), gap = TW(+H.gap || 0), fLine = lineX(fN, 1.45);
@@ -4813,10 +4822,10 @@ async function buildMemoDocx(ex, m){
     if(lgF && (L.pos === 'text' || alF === 'left')){
       // same geometry as the preview: room for the code (both sides when centred), the text block where it belongs,
       // the logo L.gap mm before the text
-      const sW = snSide ? snSide.w + 2 : 0, pL = !snSide ? 0 : alF === 'center' || snAl === 'left' ? sW : 0, pR = !snSide ? 0 : alF === 'center' || snAl !== 'left' ? sW : 0;
-      const avail = CW - pL - pR - (alF === 'left' ? lgF.w + L.gap : 0);
-      const tw = Math.min(avail, Math.max(10, ...txt.map(t => textMM(t, n, !!Fo.bold))) + 1.5);
-      const x0 = alF === 'left' ? pL + lgF.w + L.gap : alF === 'right' ? CW - pR - tw : pL + (CW - pL - pR - tw) / 2;
+      const sW = snSide ? snSide.w + 2 : 0, pL = snSide && snAl === 'left' ? sW : 0, pR = snSide && snAl !== 'left' ? sW : 0;
+      const avail = CW - pL - pR - lgF.w - L.gap;
+      const tw = Math.min(avail, Math.max(10, ...txt.map(t => textMM(t, n, !!Fo.bold))) + 1.5), gw = lgF.w + L.gap + tw;
+      const g0 = alF === 'left' ? pL : alF === 'right' ? CW - pR - gw : pL + (CW - pL - pR - gw) / 2, x0 = g0 + lgF.w + L.gap;
       const c0 = Math.max(0, x0 - L.gap - lgF.w), c4 = Math.max(0, CW - x0 - tw);
       const al = alF;
       const lgP = para(lgRun, { line:240, rule:'auto', jc:'right' });
@@ -5307,7 +5316,7 @@ const snOn = (doc = state.view.doc) => { doc = snDocKey(doc); if(!SN_PRINT.inclu
 // every document of every course keeps its own format (ex.snFmt[doc], set from that document's preview: "รูปแบบ…") —
 // nothing is shared between documents, courses or programs. A document that was never set starts from the
 // program's default in Settings.
-const SN_FMT0 = { type:'c128', size:'m', text:'left', align:'right', talign:'right', order:'below' };
+const SN_FMT0 = { type:'c128', size:'m', text:'left', align:'right', talign:'right', order:'below', tv:'center' };
 const SN_SIZE = { c128:{ s:[.22, 4], m:[.25, 5], l:[.3, 7] }, qr:{ s:10, m:12, l:15 } };   // Code 128: [bar module, bar height] mm · QR: side mm
 const SN_TXT_H = 2.6, SF_H = 3.0, SN_GAP = 2;                                             // mm
 const snFmtOwn = (ex = cur(), doc = state.view.doc) => (ex && ex.snFmt && ex.snFmt[snDocKey(doc)]) || null;
@@ -5319,6 +5328,7 @@ function snFmt(ex = cur(), doc = state.view.doc, defOnly){
   if(!['left', 'center', 'right'].includes(f.align)) f.align = 'right';
   if(!['left', 'center', 'right'].includes(f.talign)) f.talign = 'right';
   if(!['below', 'above', 'inline'].includes(f.order)) f.order = 'below';
+  if(!['top', 'center', 'bottom'].includes(f.tv)) f.tv = 'center';
   return f;
 }
 // sizes in mm of the code itself
@@ -5389,7 +5399,7 @@ function snBlockFor(code, pretty, f = snFmt()){
   return { w, h, d, html:`<div class="snb t-${f.text}" data-sn="${code}">${t}${snCodeSvg(d)}</div>` };
 }
 function snBlock(ex, doc = state.view.doc){ const b = snBlockInfo(ex, doc); return b ? b.html : ''; }
-const snStackCls = (f = snFmt()) => ` sf-al-${f.align} sf-ta-${f.talign} sf-o-${f.order}${f.align !== f.talign ? ' sf-split' : ''}`;
+const snStackCls = (f = snFmt()) => ` sf-al-${f.align} sf-ta-${f.talign} sf-o-${f.order} sf-tv-${f.tv}${f.align !== f.talign ? ' sf-split' : ''}`;
 
 // for Word: the code + readable text drawn as one PNG (bars / modules on whole pixels), laid out like the page
 function snPng(code, ex, f = snFmt()){
@@ -5414,7 +5424,8 @@ function snPng(code, ex, f = snFmt()){
     else { g.textAlign = 'center'; g.fillText(txt, W / 2, f.text === 'above' ? Math.round(fpx * .86) : H - Math.round(fpx * .14)); }
   }
   const url = cv.toDataURL('image/png');
-  return { url, bytes:dataUrlBytes(url), wmm:W / K, hmm:H / K };
+  // where the bars are inside the picture (mm from its bottom edge, and their height) — for lining text up in Word
+  return { url, bytes:dataUrlBytes(url), wmm:W / K, hmm:H / K, barBot:(H - cy - ch) / K, barH:ch / K };
 }
 
 // ---- index of every code (both programs) for search / scan ----
@@ -5942,7 +5953,34 @@ function fitWidthVar(el, varName, min = .5){
   let f = 1;
   while(el.scrollWidth > el.clientWidth + 1 && f > min){ f = Math.round((f - .02) * 100) / 100; el.style.setProperty(varName, f); }
 }
+const sfMetCache = {};
+function sfMetrics(family, thai){
+  const key = family + (thai ? '|th' : '|en'); if(sfMetCache[key]) return sfMetCache[key];
+  const g = document.createElement('canvas').getContext('2d'); g.font = `400 100px ${family}`;
+  const m = g.measureText(thai ? 'กขคนมบ' : 'HXEBNM'), A = m.fontBoundingBoxAscent / 100, D = m.fontBoundingBoxDescent / 100, gh = m.actualBoundingBoxAscent / 100;
+  const r = { A:A > 0 ? A : .9, D:D > 0 ? D : .25, g:gh > 0 ? gh : .55 };
+  if(document.fonts && document.fonts.status === 'loaded') sfMetCache[key] = r;
+  return r;
+}
+function alignSysFoot(root){
+  root.querySelectorAll('.sysfoot.has-sn.sf-o-inline').forEach(sf => {
+    const t = sf.querySelector(':scope > .sf-t'), code = sf.querySelector('.snb-code'); if(!t || !code) return;
+    t.style.transform = '';
+    const tv = sf.classList.contains('sf-tv-top') ? 'top' : sf.classList.contains('sf-tv-bottom') ? 'bottom' : 'center';
+    const cs = getComputedStyle(t), fs = parseFloat(cs.fontSize) || 8, L = parseFloat(cs.lineHeight) || fs * 1.3;
+    const T = t.getBoundingClientRect(), C = code.getBoundingClientRect(), z = t.offsetHeight ? T.height / t.offsetHeight : 1; if(!(z > 0)) return;
+    const m = sfMetrics(cs.fontFamily, /[\u0E00-\u0E7F]/.test(t.textContent));
+    const lines = Math.max(1, Math.round(t.offsetHeight / L)), bTop = (L - (m.A + m.D) * fs) / 2 + m.A * fs;
+    const inkTop = bTop - m.g * fs, lastBase = (lines - 1) * L + bTop;
+    const barTop = (C.top - T.top) / z, barBot = (C.bottom - T.top) / z;
+    const dy = tv === 'top' ? barTop - inkTop : tv === 'bottom' ? barBot - lastBase : (barTop + barBot) / 2 - (inkTop + lastBase) / 2;
+    if(Math.abs(dy) > .05) t.style.transform = `translateY(${dy.toFixed(2)}px)`;
+  });
+}
 function autoFit(root){
+  autoFit0(root); alignSysFoot(root);
+}
+function autoFit0(root){
   { // covers: fit once, every overprint copy reuses the same fit
     const cvs = [...root.querySelectorAll('.page.cv')], lone = cvs.filter(p => !p.classList.contains('ovl')), ov = cvs.filter(p => p.classList.contains('ovl'));
     lone.forEach(p => fitShrink(p));
@@ -7610,7 +7648,7 @@ function docxBuilder(){
   let drawId = 1;
   const R = (text, o = {}) => {
     const sz = hp(o.sz || 14);
-    const rPr = `<w:rPr>${rf(o.font || font)}${o.b ? '<w:b/><w:bCs/>' : ''}${o.color ? `<w:color w:val="${o.color}"/>` : ''}${LSE ? `<w:spacing w:val="${Math.round(LSE * sz / 2 * 20)}"/>` : ''}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>${o.u ? '<w:u w:val="single"/>' : ''}</w:rPr>`;
+    const rPr = `<w:rPr>${rf(o.font || font)}${o.b ? '<w:b/><w:bCs/>' : ''}${o.color ? `<w:color w:val="${o.color}"/>` : ''}${o.pos ? `<w:position w:val="${o.pos}"/>` : ''}${LSE ? `<w:spacing w:val="${Math.round(LSE * sz / 2 * 20)}"/>` : ''}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>${o.u ? '<w:u w:val="single"/>' : ''}</w:rPr>`;
     return String(text).split('\t').map((t, i) => `<w:r>${rPr}${i ? '<w:tab/>' : ''}${t ? `<w:t xml:space="preserve">${X(t)}</w:t>` : ''}</w:r>`).join('');
   };
   const lineFor = (runs, o) => {
@@ -7964,7 +8002,15 @@ async function buildDocx(ex, doc){
   media.forEach(m => files.push({ name:'word/' + m.name, data:m.bytes }));
   if(footTxt){
     // system line, then the document code under it — both right-aligned to the same margin
-    const sf = snFmt(ex, doc), jc = sf.align, tj = sf.talign, tR = footTxt0 ? R(footTxt0, { sz:6.5, color:'8A8A8A' }) : '', iR = snP ? IMG('rIdSn', snP.wmm, snP.hmm) : '';
+    const sf = snFmt(ex, doc), jc = sf.align, tj = sf.talign, iR = snP ? IMG('rIdSn', snP.wmm, snP.hmm) : '';
+    // beside the code: the line's letters at the top / middle / bottom of the bars (w:position, half-points, + = up)
+    let pos = 0;
+    if(snP && sf.order === 'inline'){
+      const gPt = 6.5 * .58, mm2pt = 72 / 25.4;   // Word sizes small Thai fonts up to match the preview, so the letter height follows the preview's
+      const b0 = snP.barBot * mm2pt, bh = snP.barH * mm2pt;
+      pos = Math.round(2 * (sf.tv === 'top' ? b0 + bh - gPt : sf.tv === 'bottom' ? b0 : b0 + (bh - gPt) / 2));
+    }
+    const tR = footTxt0 ? R(footTxt0, { sz:6.5, color:'8A8A8A', pos }) : '';
     const FW = PGW - mar.l - mar.r, TAB = '<w:r><w:tab/></w:r>';
     const tabbed = () => { const slot = { left:[], center:[], right:[] }; slot[tj].push(tR); slot[jc].push(iR);
       return `<w:p><w:pPr><w:tabs><w:tab w:val="center" w:pos="${Math.round(FW / 2)}"/><w:tab w:val="right" w:pos="${FW}"/></w:tabs><w:spacing w:before="0" w:after="0"/></w:pPr>${slot.left.join('')}${TAB}${slot.center.join('')}${TAB}${slot.right.join('')}</w:p>`; };
@@ -8323,7 +8369,8 @@ const SN_FMT_UI = [
   ['text', 'ตัวเลขรหัส', [['left', 'ซ้าย'], ['right', 'ขวา'], ['below', 'ใต้'], ['above', 'เหนือ'], ['none', 'ไม่แสดง']]],
   ['talign', 'ตำแหน่งข้อความระบบ', [['left', 'ชิดซ้าย'], ['center', 'กึ่งกลาง'], ['right', 'ชิดขวา']]],
   ['align', 'ตำแหน่งบาร์โค้ด / QR', [['left', 'ชิดซ้าย'], ['center', 'กึ่งกลาง'], ['right', 'ชิดขวา']]],
-  ['order', 'เทียบกับข้อความระบบ', [['below', 'รหัสอยู่ใต้'], ['above', 'รหัสอยู่เหนือ'], ['inline', 'บรรทัดเดียวกัน']]]
+  ['order', 'เทียบกับข้อความระบบ', [['below', 'รหัสอยู่ใต้'], ['above', 'รหัสอยู่เหนือ'], ['inline', 'บรรทัดเดียวกัน']]],
+  ['tv', 'แนวตั้งของข้อความ (บรรทัดเดียวกัน)', [['center', 'กึ่งกลางแถบรหัส'], ['bottom', 'ชิดล่างแถบรหัส'], ['top', 'ชิดบนแถบรหัส']]]
 ];
 function renderSnFmt(ctl = $('#snFmtCtl'), pv = $('#snFmtPrev'), f = snFmt(null, null, true), sample){
   if(!ctl) return;
@@ -8337,7 +8384,7 @@ function renderSnFmt(ctl = $('#snFmtCtl'), pv = $('#snFmtPrev'), f = snFmt(null,
   pv.innerHTML = `<div class="snprev" style="--pk:1"><div class="snprev-pg" style="width:${pw}mm"><div class="snprev-lines"><i></i><i></i><i style="width:62%"></i></div>
     <div class="sysfoot has-sn${snStackCls(f)}" style="--sfx:9mm;bottom:4mm${b ? `;--sncw:${(b.w + .5).toFixed(1)}mm` : ''}"><div class="sf-t">${sample ? esc(sample.foot) : 'รายงานจากระบบจัดทำเอกสารการดำเนินการสอบ … (MEDSWU-EAD) | 23 พ.ย. 2569 15.30 น.'}</div>${b ? b.html : ''}</div></div></div>`;
   requestAnimationFrame(() => { const box = pv.querySelector('.snprev'), pg = pv.querySelector('.snprev-pg'); if(!box || !pg || !box.clientWidth) return;
-    const z = Math.min(1.6, (box.clientWidth - 22) / (pw * 96 / 25.4)); pg.style.transformOrigin = '0 0'; pg.style.transform = `scale(${z.toFixed(3)})`; pg.parentElement.style.height = (pg.offsetHeight * z + 20).toFixed(1) + 'px';
+    const z = Math.min(1.6, (box.clientWidth - 22) / (pw * 96 / 25.4)); pg.style.transformOrigin = '0 0'; pg.style.transform = `scale(${z.toFixed(3)})`; pg.parentElement.style.height = (pg.offsetHeight * z + 20).toFixed(1) + 'px'; alignSysFoot(pv);
     const cap = pv.parentElement && pv.parentElement.querySelector('.snfmt-cap'); if(cap) cap.textContent = `ตัวอย่างมุมล่างของหน้ากว้าง ${pw} มม. (แสดงที่ ${Math.round(z * 100)}%)`; });
 }
 document.addEventListener('click', e => {
